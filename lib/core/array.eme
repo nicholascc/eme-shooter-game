@@ -2,6 +2,7 @@ import "lib/core/allocation.eme";
 import "lib/core/assert.eme";
 import "lib/core/char.eme";
 import "lib/core/io.eme";
+import "lib/core/option.eme";
 
 
 
@@ -59,6 +60,19 @@ reverse :: fn #export (arr: array($T)) {
     start = start + 1;
     end = end - 1;
   }
+}
+
+remove_null_elements :: fn #export (x: ^array(opt($T))) {
+  i := 0;
+  j := 0;
+  while(i < x.length) {
+    if((*x)[i].non_null) {
+      (*x)[j] = (*x)[i];
+      j = j + 1;
+    }
+    i = i + 1;
+  }
+  x.length = j;
 }
 
 

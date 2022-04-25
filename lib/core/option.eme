@@ -14,14 +14,14 @@ assert_nothing :: fn #export #inline (x: opt($T)) {
   assert(x.non_null == false);
 }
 
-init :: fn #export #inline (opt($T), x: T) -> opt(T) {
+opt :: fn #export #inline (x: $T) -> opt(T) {
   r: opt(T);
   r.non_null = true;
   r.value = x;
   return r;
 }
 
-init :: fn #export #inline (opt($T)) -> opt(T) {
+null_opt :: fn #export #inline ($T) -> opt(T) {
   r: opt(T);
   r.non_null = false;
   return r;

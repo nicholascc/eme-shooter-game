@@ -48,7 +48,7 @@ render :: fn (renderer: SDL_Renderer_Ref, tex: Texture, x: int, y: int, degrees:
   }
 }
 
-destroy :: fn (tex: Texture) {
+delete :: fn (tex: Texture) {
   SDL_DestroyTexture(tex.sdl_texture);
 }
 
@@ -79,10 +79,10 @@ main :: fn () {
 
 
 
-  player := init(Player, player_img);
-  enemies := new(list(Enemy), 0, 0);
-  each(init(range, 20)) push(^enemies, init(Enemy, enemy_img));
-  bullets := new(dellist(Bullet), 0, 0);
+  player := Player(player_img);
+  enemies := new(list(Enemy), 0, 20);
+  each(range(20)) push(^enemies, Enemy(enemy_img));
+  bullets := new(list(opt(Bullet)));
 
   time := 0;
 
@@ -157,11 +157,11 @@ main :: fn () {
 
       each(enemies) update(it, num_cast(f64, time));
       each(bullets) update(it, enemies, num_cast(f64, time));
-      clean_up(^bullets);
+      remove_null_elements(bullets.^array);
 
       if(bullet_cooldown == 0 && space_key_down) {
-        push(bullets.^list, init(opt(Bullet), init(Bullet, bullet_img, player.x + 32, player.y + 16)));
-        push(bullets.^list, init(opt(Bullet), init(Bullet, bullet_img, player.x + 64, player.y + 16)));
+        push(^bullets, opt(Bullet(bullet_img, player.x + 32, player.y + 16)));
+        push(^bullets, opt(Bullet(bullet_img, player.x + 64, player.y + 16)));
         bullet_cooldown = BULLET_COOLDOWN_TIME;
       }
 
@@ -181,8 +181,8 @@ main :: fn () {
 
 
 
-  destroy(background_img);
-  destroy(player_img);
+  delete(background_img);
+  delete(player_img);
   delete(window_surface);
   SDL_DestroyWindow(window);
   SDL_Quit();
@@ -203,7 +203,7 @@ render :: fn (renderer: SDL_Renderer_Ref, p: Player) {
   render(renderer, p.tex, p.x, p.y, 0, false);
 }
 
-init :: fn (Player, tex: Texture) -> Player {
+Player :: fn (tex: Texture) -> Player {
   r: Player;
   r.x = SCREEN_WIDTH/2 - tex.w/2;
   r.y = (SCREEN_HEIGHT*2)/3 - tex.h/2;
@@ -227,7 +227,7 @@ Enemy :: struct {
   phase: u8;
 }
 
-init :: fn (Enemy, tex: Texture) -> Enemy {
+Enemy :: fn (tex: Texture) -> Enemy {
   r: Enemy;
   r.tex = tex;
   r.phase = PHASE_DEAD;
@@ -310,7 +310,7 @@ update :: fn (o: ^opt(Bullet), enemies: list(Enemy), time: float) {
   b := o.^value;
   b.y = b.y - BULLET_SPEED;
   if(b.y < 0-b.tex.h) {
-    o = init(opt(Bullet));
+    o = null_opt(Bullet);
     return;
   }
 
@@ -326,12 +326,12 @@ update :: fn (o: ^opt(Bullet), enemies: list(Enemy), time: float) {
       it.phase = PHASE_DEAD;
       update_enemy_lerp(it, time);
 
-      o = init(opt(Bullet));
+      o = null_opt(Bullet);
     }
   }
 }
 
-init :: fn (Bullet, tex: Texture, x: int, y: int) -> Bullet {
+Bullet :: fn (tex: Texture, x: int, y: int) -> Bullet {
   r: Bullet;
   r.x = x - tex.w/2;
   r.y = y - tex.h/2;

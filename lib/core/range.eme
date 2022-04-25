@@ -5,7 +5,7 @@ range :: struct #export {
   end: int;
 }
 
-init :: fn #inline #export (range, begin: int, end: int) -> range {
+range :: fn #inline #export (begin: int, end: int) -> range {
   assert(begin <= end);
   r: range;
   r.begin = begin;
@@ -13,7 +13,7 @@ init :: fn #inline #export (range, begin: int, end: int) -> range {
   return r;
 }
 
-init :: fn #inline #export (range, end: int) -> range {
+range :: fn #inline #export (end: int) -> range {
   assert(end >= 0);
   r: range;
   r.begin = 0;

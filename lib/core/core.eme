@@ -1,6 +1,5 @@
 import #export "lib/core/array.eme"
 import #export "lib/core/list.eme"
-import #export "lib/core/dellist.eme"
 import #export "lib/core/char.eme"
 import #export "lib/core/io.eme"
 import #export "lib/core/allocation.eme"

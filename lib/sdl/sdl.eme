@@ -100,7 +100,6 @@ SDL_GetWindowSurface :: foreign fn #export (SDL_Window_Ref) -> ^SDL_Surface;
 SDL_ConvertSurface :: foreign fn #export (^SDL_Surface, SDL_PixelFormat_Ref, u32) -> ^SDL_Surface;
 SDL_UpdateWindowSurface :: foreign fn #export (SDL_Window_Ref) -> s32;
 SDL_Delay :: foreign fn #export (u32);
-SDL_DestroyWindow :: foreign fn #export (SDL_Window_Ref);
 SDL_Quit :: foreign fn #export ();
 SDL_PollEvent :: foreign fn #export (SDL_Event_Ref) -> s32;
 SDL_GetError :: foreign fn #export () -> ^char;
@@ -136,7 +135,15 @@ delete :: fn #inline #export (x: ^SDL_Surface) {
   SDL_FreeSurface(x);
 }
 
+SDL_DestroyWindow :: foreign fn #export (SDL_Window_Ref);
+delete :: fn #inline #export (x: SDL_Window_Ref) {
+  SDL_DestroyWindow(x);
+}
+
 SDL_DestroyTexture :: foreign fn #export (SDL_Texture_Ref);
+delete :: fn #inline #export (x: SDL_Texture_Ref) {
+  SDL_DestroyTexture(x);
+}
 
 IMG_Load :: foreign fn #export (^char) -> ^SDL_Surface;
 IMG_LoadTexture :: foreign fn #export (SDL_Renderer_Ref, ^char) -> SDL_Texture_Ref;
