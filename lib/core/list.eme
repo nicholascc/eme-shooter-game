@@ -1,0 +1,93 @@
+import "lib/core/array.eme"
+import "lib/core/allocation.eme"
+import "lib/core/char.eme"
+
+
+list :: struct #export (T: type) {
+  array: array(T);
+  capacity: int;
+}
+
+subscript :: fn #inline #operator #export (a: list($T), n: int) -> ^T {
+  return a.array^[n];
+}
+
+subscript :: fn #inline #operator #export (a: ^list($T), n: int) -> ^T {
+  return a.array^[n];
+}
+
+new :: fn #inline #export (list($T)) -> list(T) {
+  return new(list(T), 0, 0);
+}
+
+new :: fn #inline #export (list($T), length: int) -> list(T) {
+  return new(list(T), length, length*2);
+}
+
+new :: fn #export (list($T), length: int, capacity: int) -> list(T) {
+  r: list(T);
+  r.capacity = capacity;
+  r.array.length = length;
+  r.array.data = allocn(T, capacity);
+  return r;
+}
+
+delete :: fn #inline #export (x: list($T)) {
+  free(x.array.data);
+}
+
+expand :: fn #export (l: ^list($T), new_length: int) {
+  if(l.capacity == 0) {
+    l = new(list(T), new_length);
+  } else if(new_length > l.capacity) {
+    l.capacity = new_length * 2;
+    l.array.data = realloc(l.array.data, size_of(T) * l.capacity);
+  }
+  l.array.length = new_length;
+}
+
+push :: fn #export (l: ^list($T), x: T) {
+  expand(l, l.array.length+1);
+  l[l.array.length-1] = x;
+}
+
+
+append :: fn #export #inline (l: ^list($T), a: list(T)) {
+  append(l, a.array);
+}
+
+append :: fn #export (l: ^list($T), a: array(T)) {
+  new_length := l.array.length + a.length;
+  prev_length := l.array.length;
+  expand(l, new_length);
+  each(a) {
+    l[it_index + prev_length] = *it;
+  }
+}
+
+copy :: fn #inline #export (x: list($T)) -> list(T) {
+  return copy(list(T), x);
+}
+
+copy :: fn #export (list($T), x: array(T)) -> list(T) {
+  r := new(list(T), x.length);
+  each(r) it = x[it_index];
+  return r;
+}
+
+copy :: fn #export (list($T), x: list(T)) -> list(T) {
+  r := new(list(T), x.length);
+  each(r) it = x[it_index];
+  return r;
+}
+
+
+
+
+
+iterator_make :: fn #inline #operator #export (a: list($T)) -> array_iter(T) {
+  r: array_iter(T);
+  r.arr = a.array;
+  r.index = 0;
+  return r;
+}

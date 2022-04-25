@@ -1,0 +1,28 @@
+import "lib/core/assert.eme"
+
+opt :: struct #export (T: type) {
+  non_null: bool;
+  value: T;
+}
+
+assert_something :: fn #export #inline (x: opt($T)) -> T {
+  assert(x.non_null);
+  return x.value;
+}
+
+assert_nothing :: fn #export #inline (x: opt($T)) {
+  assert(x.non_null == false);
+}
+
+init :: fn #export #inline (opt($T), x: T) -> opt(T) {
+  r: opt(T);
+  r.non_null = true;
+  r.value = x;
+  return r;
+}
+
+init :: fn #export #inline (opt($T)) -> opt(T) {
+  r: opt(T);
+  r.non_null = false;
+  return r;
+}

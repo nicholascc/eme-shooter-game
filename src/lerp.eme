@@ -1,0 +1,31 @@
+abs :: fn (x: int) -> int {
+  if(x < 0) return 0-x;
+  else return x;
+}
+
+
+lerp :: struct #export (T: type) {
+  begin: T;
+  end: T;
+  begin_time: T;
+  end_time: T;
+}
+
+get_current :: fn #export (x: lerp($T), current: T) -> T {
+  if(current < x.begin_time) return x.begin;
+  else if(current >= x.end_time) return x.end;
+  else return (x.end * (current - x.begin_time) + x.begin * (x.end_time - current))/(x.end_time - x.begin_time);
+}
+
+from_begin_end :: fn #export #inline (lerp($T), begin: T, end: T, begin_time: T, end_time: T) -> lerp(T) {
+  r: lerp(T);
+  r.begin = begin;
+  r.end = end;
+  r.begin_time = begin_time;
+  r.end_time = end_time;
+  return r;
+}
+
+is_done :: fn #export #inline (x: lerp($T), current: T) -> bool {
+  return current >= x.end_time;
+}

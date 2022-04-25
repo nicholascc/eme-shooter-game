@@ -1,0 +1,46 @@
+import "lib/core/array.eme"
+import "lib/core/list.eme"
+import "lib/core/char.eme"
+
+putchar :: foreign fn(char);
+
+
+print :: fn #export #inline (c: char) {
+  putchar(c);
+}
+
+print :: fn #export (x: array(char)) {
+  each(x) putchar(*it);
+}
+
+print :: fn #export (x: array($T)) {
+  each(x) {
+    if(it_index > 0) print(" ");
+    print(*it);
+  }
+}
+
+print :: fn #export #inline (x: list($T)) {
+  print(x.array);
+}
+
+print :: fn #export (x: int) {
+  s := to_string(x);
+  print(s);
+  delete(s);
+}
+
+print_float :: foreign fn (float);
+
+print :: fn #inline #export (x: float) {
+  print_float(x);
+}
+
+println :: fn #export #inline () {
+  print(to_char(10));
+}
+
+println :: fn #export #inline (x: $T) {
+  print(x);
+  println();
+}

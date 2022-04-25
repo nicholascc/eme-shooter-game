@@ -1,0 +1,93 @@
+import "lib/core/allocation.eme";
+import "lib/core/assert.eme";
+import "lib/core/char.eme";
+import "lib/core/io.eme";
+
+
+
+
+array :: struct #export (T: type) {
+  length: int;
+  data: ^T;
+}
+
+subscript :: fn #inline #operator #export (a: array($T), n: int) -> ^T {
+  assert(n >= 0 && n < a.length);
+  return ptr_subscript(a.data, n);
+}
+
+subscript :: fn #inline #operator #export (a: ^array($T), n: int) -> ^T {
+  assert(n >= 0 && n < a.length);
+  return ptr_subscript(a.data, n);
+}
+
+new :: fn #inline #export (array($T), length: int) -> array(T) {
+  assert(length >= 0);
+  r: array(T);
+  r.length = length;
+  r.data = allocn(T, length);
+  return r;
+}
+
+delete :: fn #inline #export (x: array($T)) {
+  free(x.data);
+}
+
+copy :: fn #inline #export (x: array($T)) -> array(T) {
+  return copy(array(T), x);
+}
+
+copy :: fn #export (array($T1), x: array(T1)) -> array(T1) {
+  r := new(array(T1), x.length);
+  each(r) it = x[it_index];
+  return r;
+}
+
+truncate :: fn #export (x: ^array($T), length: int) {
+  assert(length <= x.length);
+  x.length = length;
+}
+
+reverse :: fn #export (arr: array($T)) {
+  start := 0;
+  end := arr.length-1;
+  while(start < end) {
+    temp := arr[end];
+    arr[end] = arr[start];
+    arr[start] = temp;
+
+    start = start + 1;
+    end = end - 1;
+  }
+}
+
+
+
+
+array_iter :: struct #export (T: type) {
+  arr: array(T);
+  index: int;
+}
+
+iterator_make :: fn #inline #operator #export (a: array($T)) -> array_iter(T) {
+  r: array_iter(T);
+  r.arr = a;
+  r.index = 0;
+  return r;
+}
+
+iterator_element :: fn #inline #operator #export (a: array_iter($T)) -> ^T {
+  return a.arr^[a.index];
+}
+
+iterator_index :: fn #inline #operator #export (a: array_iter($T)) -> int {
+  return a.index;
+}
+
+iterator_done :: fn #inline #operator #export (a: array_iter($T)) -> bool {
+  return a.index >= a.arr.length;
+}
+
+iterator_next :: fn #inline #operator #export (a: ^array_iter($T)) {
+  a.index = a.index + 1;
+}

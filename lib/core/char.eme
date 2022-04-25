@@ -1,0 +1,105 @@
+import "lib/core/array.eme";
+import "lib/core/list.eme";
+import "lib/core/allocation.eme";
+import "lib/core/assert.eme";
+
+char :: unique #export u8;
+
+to_char :: fn #inline #export (c: u8) -> char {
+  return bit_cast(char, c);
+}
+
+to_u8 :: fn #inline #export (c: char) -> u8 {
+  return bit_cast(u8, c);
+}
+
+
+
+
+to_lower :: fn #export (c: char) -> char {
+  u := to_u8(c);
+  if(u >= 65 && u <= 90) return to_char(u+32);
+  else return c;
+}
+
+to_upper :: fn #export (c: char) -> char {
+  u := to_u8(c);
+  if(u >= 97 && u <= 127) return to_char(u-32);
+  else return c;
+}
+
+
+to_lower :: fn #export (x: array(char)) {
+  each(x) it = to_lower(*it);
+}
+
+to_upper :: fn #export (x: array(char)) {
+  each(x) it = to_upper(*it);
+}
+
+
+to_digit :: fn #export (x: int) -> char {
+  assert(x >= 0 && x < 10);
+  offset := num_cast(u8, x);
+  return to_char(48+offset);
+}
+
+
+to_string :: fn #export (x: int) -> list(char) {
+  r := new(list(char), 0, 1);
+
+  is_negative := x < 0;
+
+  if(x == 0) {
+    append(^r, "0");
+    return r;
+  } else if(x < 0) {
+    x = 0-x;
+  }
+
+  while(x > 0) {
+    next := x/10;
+    rem := x-next*10;
+    push(^r, to_digit(rem));
+    x = next;
+  }
+
+  if(is_negative) {
+    append(^r, "-");
+  }
+
+  reverse(r.array);
+
+  return r;
+}
+
+
+make_string_literal :: fn #export #operator #inline (data: ^u8, length: int) -> array(char) {
+  r: array(char);
+  r.length = length;
+  r.data = bit_cast(^char, data);
+  return r;
+}
+
+
+new_c_string :: fn #export (x: array(char)) -> ^char {
+  r := allocn(char, x.length+1);
+  each(x) {
+    p := ptr_subscript(r, it_index);
+    p = *it;
+  }
+  p := ptr_subscript(r, x.length);
+  p = to_char(0);
+  return r;
+}
+
+from_c_string :: fn #export (x: ^char) -> array(char) {
+  i := 0;
+  while(to_u8(*ptr_subscript(x, i)) > 0) {
+    i = i + 1;
+  }
+  r: array(char);
+  r.data = x;
+  r.length = i;
+  return r;
+}

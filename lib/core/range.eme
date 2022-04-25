@@ -1,0 +1,54 @@
+import "lib/core/assert.eme"
+
+range :: struct #export {
+  begin: int;
+  end: int;
+}
+
+init :: fn #inline #export (range, begin: int, end: int) -> range {
+  assert(begin <= end);
+  r: range;
+  r.begin = begin;
+  r.end = end;
+  return r;
+}
+
+init :: fn #inline #export (range, end: int) -> range {
+  assert(end >= 0);
+  r: range;
+  r.begin = 0;
+  r.end = end;
+  return r;
+}
+
+
+
+range_iter :: struct {
+  begin: int;
+  end: int;
+  index: int;
+}
+
+iterator_make :: fn #inline #operator #export (x: range) -> range_iter {
+  r: range_iter;
+  r.begin = x.begin;
+  r.end = x.end;
+  r.index = 0;
+  return r;
+}
+
+iterator_element :: fn #inline #operator #export (r: range_iter) -> int {
+  return r.begin + r.index;
+}
+
+iterator_index :: fn #inline #operator #export (r: range_iter) -> int {
+  return r.index;
+}
+
+iterator_done :: fn #inline #operator #export (r: range_iter) -> bool {
+  return r.index + r.begin >= r.end;
+}
+
+iterator_next :: fn #inline #operator #export (r: ^range_iter) {
+  r.index = r.index + 1;
+}

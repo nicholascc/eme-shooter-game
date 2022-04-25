@@ -1,0 +1,12 @@
+import "lib/core/char.eme"
+import "lib/core/io.eme"
+
+exit :: foreign fn(int);
+
+assert :: fn #export (x: bool) {
+  if(x) return;
+  print("
+An assert failed.
+");
+  exit(1);
+}

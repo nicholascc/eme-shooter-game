@@ -1,0 +1,340 @@
+import "lib/core/core.eme"
+import "lib/sdl/sdl.eme"
+import "src/lerp.eme"
+
+sqrtl :: foreign fn(float) -> float;
+rand :: foreign fn() -> s32;
+
+rand_range :: fn (begin: int, end: int) -> int {
+  rand := rand();
+  ranged := rand - (end - begin) * (rand/(end-begin));
+  return ranged + begin;
+}
+
+SCREEN_WIDTH := 1024;
+SCREEN_HEIGHT := 600;
+
+Texture :: struct {
+  sdl_texture: SDL_Texture_Ref;
+  w: s32;
+  h: s32;
+};
+
+load_texture :: fn (renderer: SDL_Renderer_Ref, path: array(char), w: int) -> Texture {
+  path_c_string := new_c_string(path);
+  img := IMG_LoadTexture(renderer, path_c_string);
+  assert(bit_cast(uint, img) > 0);
+
+  free(path_c_string);
+
+  r: Texture;
+  r.sdl_texture = img;
+  SDL_QueryTexture(img, bit_cast(^u32, 0), bit_cast(^s32, 0), r.^w, r.^h);
+  r.h = (num_cast(s32, w)*r.h) / r.w;
+  r.w = num_cast(s32, w);
+  return r;
+}
+
+render :: fn (renderer: SDL_Renderer_Ref, tex: Texture, x: int, y: int, degrees: float, flip: bool) {
+  dest: SDL_Rect;
+  dest.x = num_cast(s32, x);
+  dest.y = num_cast(s32, y);
+  dest.w = tex.w;
+  dest.h = tex.h;
+  if(SDL_RenderCopyEx(renderer, tex.sdl_texture, bit_cast(^SDL_Rect, 0), ^dest, degrees, bit_cast(^SDL_Point, 0), if(flip) SDL_FLIP_VERTICAL else SDL_FLIP_NONE) < 0) {
+    print("Error: ");
+    print(from_c_string(SDL_GetError()));
+    println();
+  }
+}
+
+destroy :: fn (tex: Texture) {
+  SDL_DestroyTexture(tex.sdl_texture);
+}
+
+main :: fn () {
+
+  assert(SDL_Init(SDL_INIT_VIDEO) >= 0);
+
+  window := SDL_CreateWindow(
+              new_c_string("Invaders!"),
+              SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+              num_cast(s32, SCREEN_WIDTH), num_cast(s32, SCREEN_HEIGHT),
+              SDL_WINDOW_SHOWN
+              );
+  assert(bit_cast(uint, window) > 0);
+
+  window_surface := SDL_GetWindowSurface(window);
+  assert(bit_cast(uint, window_surface) > 0);
+
+
+  renderer := SDL_CreateRenderer(window, 0-1, SDL_RENDERER_ACCELERATED_PRESENTVSYNC);
+  assert(bit_cast(uint, renderer) > 0);
+
+  background_img := load_texture(renderer, "assets/background.png", SCREEN_WIDTH);
+  player_img := load_texture(renderer, "assets/player.png", 48*2);
+  enemy_img := load_texture(renderer, "assets/enemy.png", 48*2);
+  bullet_img := load_texture(renderer, "assets/bullet.png", 64);
+
+
+
+
+  player := init(Player, player_img);
+  enemies := new(list(Enemy), 0, 0);
+  each(init(range, 20)) push(^enemies, init(Enemy, enemy_img));
+  bullets := new(dellist(Bullet), 0, 0);
+
+  time := 0;
+
+  space_key_down := false;
+
+  bullet_cooldown := 0;
+
+  // Game loop
+  {
+    running := true;
+    while(running) {
+
+      // Event loop
+      {
+        found_event := true;
+        while(found_event) {
+          event := new(SDL_Event_Ref);
+          found_event = SDL_PollEvent(event) == 1;
+          if (found_event) {
+            if(event_type(event) == SDL_QUIT) {
+              running = false;
+            } else if(event_type(event) == SDL_KEYDOWN) {
+              e := bit_cast(^SDL_KeyboardEvent, event);
+              if(e.keysym.sym == SDLK_ESCAPE) {
+                running = false;
+              } else if(e.keysym.sym == to_u8("w"[0])) {
+                player.dy = 0-PLAYER_SPEED;
+              } else if(e.keysym.sym == to_u8("s"[0])) {
+                player.dy = PLAYER_SPEED;
+              } else if(e.keysym.sym == to_u8("a"[0])) {
+                player.dx = 0-PLAYER_SPEED;
+              } else if(e.keysym.sym == to_u8("d"[0])) {
+                player.dx = PLAYER_SPEED;
+              } else if(e.keysym.sym == to_u8(" "[0])) {
+                space_key_down = true;
+              }
+            } else if(event_type(event) == SDL_KEYUP) {
+              e := bit_cast(^SDL_KeyboardEvent, event);
+              if(e.keysym.sym == to_u8("w"[0]) && player.dy < 0) {
+                player.dy = 0;
+              } else if(e.keysym.sym == to_u8("s"[0]) && player.dy > 0) {
+                player.dy = 0;
+              } else if(e.keysym.sym == to_u8("a"[0]) && player.dx < 0) {
+                player.dx = 0;
+              } else if(e.keysym.sym == to_u8("d"[0]) && player.dx > 0) {
+                player.dx = 0;
+              } else if(e.keysym.sym == to_u8(" "[0])) {
+                space_key_down = false;
+              }
+            }
+          }
+          delete(event);
+        }
+      }
+
+      // Game logic
+
+      time = time + 1;
+      if(bullet_cooldown > 0) bullet_cooldown = bullet_cooldown - 1;
+
+      player.x = player.x + player.dx;
+      player.y = player.y + player.dy;
+
+      if(player.x < 0)
+        player.x = 0;
+      if(player.y < 0)
+        player.y = 0;
+      if(player.x + player.tex.w >= SCREEN_WIDTH)
+        player.x = SCREEN_WIDTH - player.tex.w;
+      if(player.y + player.tex.h >= SCREEN_HEIGHT)
+        player.y = SCREEN_HEIGHT - player.tex.h;
+
+      each(enemies) update(it, num_cast(f64, time));
+      each(bullets) update(it, enemies, num_cast(f64, time));
+      clean_up(^bullets);
+
+      if(bullet_cooldown == 0 && space_key_down) {
+        push(bullets.^list, init(opt(Bullet), init(Bullet, bullet_img, player.x + 32, player.y + 16)));
+        push(bullets.^list, init(opt(Bullet), init(Bullet, bullet_img, player.x + 64, player.y + 16)));
+        bullet_cooldown = BULLET_COOLDOWN_TIME;
+      }
+
+      // Rendering
+      SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+      SDL_RenderClear(renderer);
+
+      render(renderer, background_img, 0, 0, 0, false);
+      each(enemies) render(renderer, *it, num_cast(f64, time));
+      each(bullets) render(renderer, assert_something(*it));
+      render(renderer, player);
+
+      SDL_RenderPresent(renderer);
+    }
+  }
+
+
+
+
+  destroy(background_img);
+  destroy(player_img);
+  delete(window_surface);
+  SDL_DestroyWindow(window);
+  SDL_Quit();
+}
+
+
+PLAYER_SPEED := 5;
+
+Player :: struct {
+  tex: Texture;
+  x: int;
+  y: int;
+  dx: int;
+  dy: int;
+}
+
+render :: fn (renderer: SDL_Renderer_Ref, p: Player) {
+  render(renderer, p.tex, p.x, p.y, 0, false);
+}
+
+init :: fn (Player, tex: Texture) -> Player {
+  r: Player;
+  r.x = SCREEN_WIDTH/2 - tex.w/2;
+  r.y = (SCREEN_HEIGHT*2)/3 - tex.h/2;
+  r.dx = 0;
+  r.dy = 0;
+  r.tex = tex;
+  return r;
+}
+
+
+ENEMY_SPEED : float = 5;
+
+PHASE_DEAD : u8 = 0;
+PHASE_ENTERING : u8 = 1;
+PHASE_MOVING : u8 = 2;
+
+Enemy :: struct {
+  tex: Texture;
+  x: lerp(float);
+  y: lerp(float);
+  phase: u8;
+}
+
+init :: fn (Enemy, tex: Texture) -> Enemy {
+  r: Enemy;
+  r.tex = tex;
+  r.phase = PHASE_DEAD;
+  update_enemy_lerp(^r, 0);
+
+  return r;
+}
+
+
+update_enemy_lerp :: fn (e: ^Enemy, time: float) {
+  if(e.phase == PHASE_MOVING) {
+    x := num_cast(f64, rand_range(0, SCREEN_WIDTH - e.tex.w));
+    y := num_cast(f64, rand_range(0, SCREEN_HEIGHT/2 - e.tex.h));
+    dx := x - e.x.end;
+    dy := y - e.y.end;
+    dist := sqrtl(dx*dx + dy*dy);
+    time_taken := dist / ENEMY_SPEED;
+    e.x = from_begin_end(lerp(float), e.x.end, x, time, time + time_taken);
+    e.y = from_begin_end(lerp(float), e.y.end, y, time, time + time_taken);
+
+
+  } else if(e.phase == PHASE_ENTERING) {
+    {
+      x := num_cast(f64, rand_range(0, SCREEN_WIDTH - e.tex.w));
+      e.x = from_begin_end(lerp(float), x, x, time, time+60);
+    }
+    {
+      x := 0 - num_cast(f64, e.tex.h);
+      e.y = from_begin_end(lerp(float), x, 10, time, time+60);
+    }
+
+
+  } else if(e.phase == PHASE_DEAD) {
+    t := num_cast(float, rand_range(30, 120));
+    e.x = from_begin_end(lerp(float), 0-1000, 0-1000, time, time+t);
+    e.y = from_begin_end(lerp(float), 0-1000, 0-1000, time, time+t);
+
+
+  }
+}
+
+update :: fn (e: ^Enemy, time: float) {
+  if(is_done(e.x, time) && is_done(e.y, time)) {
+    if(e.phase == PHASE_DEAD) {
+      e.phase = PHASE_ENTERING;
+      update_enemy_lerp(e, time);
+    } else if(e.phase == PHASE_ENTERING) {
+      e.phase = PHASE_MOVING;
+      update_enemy_lerp(e, time);
+    } else if(e.phase == PHASE_MOVING) {
+      update_enemy_lerp(e, time);
+    } else assert(false);
+  }
+}
+
+render :: fn (renderer: SDL_Renderer_Ref, e: Enemy, time: float) {
+  x := num_cast(int, get_current(e.x, time));
+  y := num_cast(int, get_current(e.y, time));
+  render(renderer, e.tex, x, y, 0, true);
+}
+
+
+
+BULLET_COOLDOWN_TIME := 10;
+BULLET_SPEED := 8;
+
+Bullet :: struct {
+  tex: Texture;
+  x: int;
+  y: int;
+}
+
+
+render :: fn (renderer: SDL_Renderer_Ref, b: Bullet) {
+  render(renderer, b.tex, b.x, b.y, 270, false);
+}
+
+update :: fn (o: ^opt(Bullet), enemies: list(Enemy), time: float) {
+  assert(o.non_null);
+  b := o.^value;
+  b.y = b.y - BULLET_SPEED;
+  if(b.y < 0-b.tex.h) {
+    o = init(opt(Bullet));
+    return;
+  }
+
+  collided := false;
+  each(enemies) {
+    x := num_cast(int, get_current(it.x, time));
+    y := num_cast(int, get_current(it.y, time));
+    if(collided) {
+
+    } else if(b.x < x + it.tex.w && b.x > x &&
+              b.y < y + it.tex.h && b.y > y) {
+      collided = true;
+      it.phase = PHASE_DEAD;
+      update_enemy_lerp(it, time);
+
+      o = init(opt(Bullet));
+    }
+  }
+}
+
+init :: fn (Bullet, tex: Texture, x: int, y: int) -> Bullet {
+  r: Bullet;
+  r.x = x - tex.w/2;
+  r.y = y - tex.h/2;
+  r.tex = tex;
+  return r;
+}

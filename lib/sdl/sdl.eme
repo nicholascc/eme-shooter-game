@@ -1,0 +1,142 @@
+import "lib/core/core.eme"
+
+SDL_Window_Ref :: unique #export ^u8;
+SDL_Renderer_Ref :: unique #export ^u8;
+SDL_Texture_Ref :: unique #export ^u8;
+SDL_PixelFormat_Ref :: unique #export ^u8;
+SDL_BlitMap_Ref :: unique #export ^u8;
+
+SDL_Point :: struct #export {
+  x: s32;
+  y: s32;
+};
+
+SDL_Rect :: struct #export {
+  x: s32;
+  y: s32;
+  w: s32;
+  h: s32;
+};
+
+SDL_Surface :: struct #export {
+   flags: u32;
+   format: SDL_PixelFormat_Ref;
+   w: s32;
+   h: s32;
+   pitch: s32;
+   pixels: ^u8;
+
+   userdata: ^u8;
+   locked: s32;
+
+   list_blitmap: ^u8;
+
+   clip_rect: SDL_Rect;
+
+   map: SDL_BlitMap_Ref;
+
+   refcount: s32;
+};
+
+SDLK_ESCAPE #export := 27;
+
+SDL_Keysym :: struct #export {
+  scancode: s32;
+  sym: s32;
+  mode: u16;
+  unused: u32;
+}
+
+SDL_QUIT #export        : u32 = 256;
+SDL_KEYDOWN #export     : u32 = 768;
+SDL_KEYUP #export       : u32 = 769;
+SDL_MOUSEMOTION #export : u32 = 1024;
+
+SDL_Event_Ref :: unique #export ^u32;
+
+SDL_CommonEvent :: struct #export {
+  type: u32;
+  timestamp: u32;
+}
+
+SDL_KeyboardEvent :: struct #export {
+  type: u32;
+  timestamp: u32;
+  window_id: u32;
+  state: u8;
+  repeat: u8;
+  padding2: u8;
+  padding3: u8;
+  keysym: SDL_Keysym;
+}
+
+SDL_QuitEvent :: struct #export {
+  type: u32;
+  timestamp: u32;
+}
+
+new :: fn #export (SDL_Event_Ref) -> SDL_Event_Ref {
+  return bit_cast(SDL_Event_Ref, malloc(56)); // I determined this size by doing sizeof() on the union in C.
+}
+
+event_type :: fn #export (e: SDL_Event_Ref) -> u32 {
+  return *bit_cast(^u32, e);
+}
+
+delete :: fn #export (e: SDL_Event_Ref) {
+  free(bit_cast(^u8, e));
+}
+
+
+SDL_INIT_VIDEO #export : u32 = 32;
+
+SDL_Init :: foreign fn #export (u32) -> s32;
+
+SDL_WINDOWPOS_UNDEFINED #export : s32 = 536805376;
+SDL_WINDOW_SHOWN #export : u32 = 4;
+
+SDL_CreateWindow :: foreign fn #export (^char, s32, s32, s32, s32, u32) -> SDL_Window_Ref;
+SDL_GetWindowSurface :: foreign fn #export (SDL_Window_Ref) -> ^SDL_Surface;
+SDL_ConvertSurface :: foreign fn #export (^SDL_Surface, SDL_PixelFormat_Ref, u32) -> ^SDL_Surface;
+SDL_UpdateWindowSurface :: foreign fn #export (SDL_Window_Ref) -> s32;
+SDL_Delay :: foreign fn #export (u32);
+SDL_DestroyWindow :: foreign fn #export (SDL_Window_Ref);
+SDL_Quit :: foreign fn #export ();
+SDL_PollEvent :: foreign fn #export (SDL_Event_Ref) -> s32;
+SDL_GetError :: foreign fn #export () -> ^char;
+SDL_SetHint :: foreign fn #export (^char, ^char) -> bool;
+
+SDL_RENDERER_SOFTWARE #export : u32 = 1;
+SDL_RENDERER_ACCELERATED #export : u32 = 2;
+SDL_RENDERER_PRESENTVSYNC #export : u32 = 4;
+
+SDL_RENDERER_ACCELERATED_PRESENTVSYNC #export : u32 = 6;
+
+SDL_CreateRenderer :: foreign fn #export (SDL_Window_Ref, s32, u32) -> SDL_Renderer_Ref;
+SDL_SetRenderDrawColor :: foreign fn #export (SDL_Renderer_Ref, u8, u8, u8, u8) -> s32;
+SDL_RenderClear :: foreign fn #export (SDL_Renderer_Ref) -> s32;
+SDL_RenderPresent :: foreign fn #export (SDL_Renderer_Ref);
+SDL_CreateTextureFromSurface :: foreign fn #export (SDL_Renderer_Ref, ^SDL_Surface) -> SDL_Texture_Ref;
+SDL_QueryTexture :: foreign fn #export (SDL_Texture_Ref, ^u32, ^s32, ^s32, ^s32) -> s32;
+
+SDL_FLIP_NONE #export : u32 = 0;
+SDL_FLIP_HORIZONTAL #export : u32 = 1;
+SDL_FLIP_VERTICAL #export : u32 = 2;
+
+SDL_RenderCopy :: foreign fn #export (SDL_Renderer_Ref, SDL_Texture_Ref, ^SDL_Rect, ^SDL_Rect) -> s32;
+SDL_RenderCopyEx :: foreign fn #export (SDL_Renderer_Ref, SDL_Texture_Ref, ^SDL_Rect, ^SDL_Rect, float, ^SDL_Point, u32) -> s32;
+
+SDL_UpperBlit :: foreign fn (^SDL_Surface, ^SDL_Rect, ^SDL_Surface, ^SDL_Rect) -> s32;
+SDL_BlitSurface :: fn #inline #export (src: ^SDL_Surface, src_rect: ^SDL_Rect, dest: ^SDL_Surface, dest_rect: ^SDL_Rect) -> s32 {
+  return SDL_UpperBlit(src, src_rect, dest, dest_rect);
+}
+
+SDL_FreeSurface :: foreign fn (^SDL_Surface);
+delete :: fn #inline #export (x: ^SDL_Surface) {
+  SDL_FreeSurface(x);
+}
+
+SDL_DestroyTexture :: foreign fn #export (SDL_Texture_Ref);
+
+IMG_Load :: foreign fn #export (^char) -> ^SDL_Surface;
+IMG_LoadTexture :: foreign fn #export (SDL_Renderer_Ref, ^char) -> SDL_Texture_Ref;

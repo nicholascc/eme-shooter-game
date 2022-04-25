@@ -1,0 +1,23 @@
+malloc :: foreign fn #export (int) -> ^u8;
+free :: foreign fn(int);
+realloc :: foreign fn(^u8, int) -> ^u8;
+
+alloc :: fn #inline #export ($T) -> ^T {
+  return bit_cast(^T, malloc(size_of(T)));
+}
+
+allocn :: fn #inline #export ($T, x: int) -> ^T {
+  return bit_cast(^T, malloc(size_of(T)*x));
+}
+
+ptr_subscript :: fn #inline #export (ptr: ^$T, i: int) -> ^T {
+  return bit_cast(^T, size_of(T)*i + bit_cast(int, ptr));
+}
+
+free :: fn #inline #export (ptr: ^$T) {
+  free(bit_cast(int, ptr));
+}
+
+realloc :: fn #inline #export (ptr: ^$T, new_size: int) -> ^T {
+  return bit_cast(^T, realloc(bit_cast(^u8, ptr), new_size));
+}
