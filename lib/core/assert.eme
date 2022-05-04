@@ -1,5 +1,5 @@
-import "lib/core/char.eme"
-import "lib/core/io.eme"
+import "char.eme"
+import "io.eme"
 
 exit :: foreign fn(int);
 

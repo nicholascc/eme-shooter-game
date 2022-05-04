@@ -1,4 +1,4 @@
-import "lib/core/assert.eme"
+import "assert.eme"
 
 range :: struct #export {
   begin: int;

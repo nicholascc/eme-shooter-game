@@ -1,6 +1,6 @@
-import "lib/core/array.eme"
-import "lib/core/list.eme"
-import "lib/core/char.eme"
+import "array.eme"
+import "list.eme"
+import "char.eme"
 
 putchar :: foreign fn(char);
 

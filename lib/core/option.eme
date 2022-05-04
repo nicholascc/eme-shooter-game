@@ -1,4 +1,4 @@
-import "lib/core/assert.eme"
+import "assert.eme"
 
 opt :: struct #export (T: type) {
   non_null: bool;

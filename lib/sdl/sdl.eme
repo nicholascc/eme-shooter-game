@@ -1,4 +1,4 @@
-import "lib/core/core.eme"
+import "../../lib/core/core.eme"
 
 SDL_Window_Ref :: unique #export ^u8;
 SDL_Renderer_Ref :: unique #export ^u8;

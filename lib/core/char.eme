@@ -1,7 +1,7 @@
-import "lib/core/array.eme";
-import "lib/core/list.eme";
-import "lib/core/allocation.eme";
-import "lib/core/assert.eme";
+import "array.eme";
+import "list.eme";
+import "allocation.eme";
+import "assert.eme";
 
 char :: unique #export u8;
 

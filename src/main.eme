@@ -1,6 +1,6 @@
-import "lib/core/core.eme"
-import "lib/sdl/sdl.eme"
-import "src/lerp.eme"
+import "../lib/core/core.eme"
+import "../lib/sdl/sdl.eme"
+import "lerp.eme"
 
 sqrtl :: foreign fn(float) -> float;
 rand :: foreign fn() -> s32;
