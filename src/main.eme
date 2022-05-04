@@ -1,5 +1,5 @@
-import "../lib/core/core.eme"
-import "../lib/sdl/sdl.eme"
+import "../lib/core/main.eme"
+import "../lib/sdl/main.eme"
 import "lerp.eme"
 
 sqrtl :: foreign fn(float) -> float;
